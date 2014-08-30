@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Upcast by zalora</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Upcast</h1>
+        <p>operation declarative cloud ʕノ•ᴥ•ʔノ ︵ ┻━┻</p>
+
+        <p class="view"><a href="https://github.com/zalora/upcast">View the Project on GitHub <small>zalora/upcast</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/zalora/upcast/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/zalora/upcast/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/zalora/upcast">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <p>Upcast is a declarative cloud infrastructure orchestration tool that leverages <a href="http://nixos.org/nix/">Nix</a>.
+Its nix codebase (and, by extension, its interface) was started off by copying files from <a href="https://github.com/nixos/nixops">nixops</a>.</p>
+
+<h3>
+<a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick start</h3>
+
+<div class="highlight highlight-console"><pre><span class="go">upcast - infrastructure orchestratrion</span>
+
+<span class="go">Usage: upcast COMMAND</span>
+
+<span class="go">Available commands:</span>
+<span class="go">  run                      evaluate resources, run builds and deploy</span>
+<span class="go">  build                    perform a build of all machine closures</span>
+<span class="go">  ssh-config               dump ssh config for deployment (evaluates resources)</span>
+<span class="go">  resource-info            dump resource information in json format</span>
+<span class="go">  resource-debug           evaluate resources in debugging mode</span>
+</pre></div>
+
+<div class="highlight highlight-console"><pre><span class="gp">$</span> awk <span class="s1">'NR==1{print "default", $1, $2}'</span> ~/.ec2-keys &gt; ~/.aws-keys
+<span class="gp">$</span> cabal install
+<span class="gp">$</span> <span class="nb">export </span><span class="nv">UPCAST_NIX_FLAGS</span><span class="o">=</span><span class="s2">"--option use-binary-cache true --option binary-caches http://hydra.nixos.org"</span>
+<span class="gp">$</span> upcast run my-network.nix -- -j4
+</pre></div>
+
+<p>See example deployments in <code>examples/</code>.</p>
+
+<h4>
+<a name="configuring-remote-builds" class="anchor" href="#configuring-remote-builds"><span class="octicon octicon-link"></span></a>Configuring remote builds</h4>
+
+<p>Add the following to your shell profile:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">export </span><span class="nv">NIX_BUILD_HOOK</span><span class="o">=</span><span class="s2">"$HOME/.nix-profile/libexec/nix/build-remote.pl"</span>
+<span class="nb">export </span><span class="nv">NIX_REMOTE_SYSTEMS</span><span class="o">=</span><span class="s2">"$HOME/remote-systems.conf"</span>
+<span class="nb">export </span><span class="nv">NIX_CURRENT_LOAD</span><span class="o">=</span><span class="s2">"/tmp/remote-load"</span>
+</pre></div>
+
+<h3>
+<a name="goals" class="anchor" href="#goals"><span class="octicon octicon-link"></span></a>Goals</h3>
+
+<ul>
+<li>simplicity, extensibility;</li>
+<li>shared state stored as nix expressions next to machines expressions;</li>
+<li>first-class AWS support (including AWS features nixops doesn't have);</li>
+<li>minimum dependency of network latency of the client;</li>
+<li>support for running day-to-day operations on deployed resources, services and machines.</li>
+</ul><h3>
+<a name="notable-differences-from-nixops" class="anchor" href="#notable-differences-from-nixops"><span class="octicon octicon-link"></span></a>Notable differences from NixOps</h3>
+
+<h4>
+<a name="expression-files" class="anchor" href="#expression-files"><span class="octicon octicon-link"></span></a>Expression files</h4>
+
+<ul>
+<li>You can no longer specify the machine environment using <code>deployment.targetEnv</code>, now you need to explicitly include the resource module instead.
+Currently available modules are: <code>&lt;upcast/env-ec2.nix&gt;</code>.</li>
+</ul><h4>
+<a name="operation-modes" class="anchor" href="#operation-modes"><span class="octicon octicon-link"></span></a>Operation modes</h4>
+
+<ul>
+<li>The only supported command is <code>run</code> (so far). No <code>create</code>, <code>modify</code>, <code>clone</code>, <code>set-args</code>, <code>send-keys</code> non-sense;</li>
+<li>NixOps SQLite state files are abandoned, separate text files (<a href="https://github.com/zalora/upcast/blob/master/src/Upcast/TermSubstitution.hs">json dict for state</a> and a private key file) are used instead;</li>
+<li>Physical specs are removed
+
+<ul>
+<li>Identical machines get identical machine closures, they are no longer parametric by things like hostnames (these are configured at runtime).</li>
+</ul>
+</li>
+</ul><h4>
+<a name="resources" class="anchor" href="#resources"><span class="octicon octicon-link"></span></a>Resources</h4>
+
+<ul>
+<li>New: EC2-VPC support, ELB support;</li>
+<li>Additionally planned: AWS autoscaling, EBS snapshotting;</li>
+<li>Different in EC2: CreateKeyPair (autogenerated private keys by amazon) is not supported, ImportKeyPair is used instead;</li>
+<li>Not supported: sqs, s3, elastic ips, ssh tunnels, adhoc nixos deployments,
+             deployments to expressions that span multiple AWS regions;</li>
+<li>Most likely will not be supported: virtualbox, hetzner, auto-luks, auto-raid0, <code>/run/keys</code> support, static route53 support (like nixops);</li>
+</ul><h3>
+<a name="motivation" class="anchor" href="#motivation"><span class="octicon octicon-link"></span></a>Motivation</h3>
+
+<p><img src="http://i.imgur.com/HY2Gtk5.png" alt="motivation"></p>
+
+<h3>
+<a name="known-issues" class="anchor" href="#known-issues"><span class="octicon octicon-link"></span></a>Known issues</h3>
+
+<ul>
+<li>state files are not garbage collected, have to be often cleaned up manually;</li>
+<li>altering of most resources is not supported properly (you need to remove using aws cli, cleanup the state file and try again);</li>
+<li>word "aterm" is naming a completely different thing;</li>
+</ul><p>Note: the app is currently in HEAVY development (and is already being used to power production cloud instances)
+so interfaces may break without notice.</p>
+
+<h3>
+<a name="more-stuff" class="anchor" href="#more-stuff"><span class="octicon octicon-link"></span></a>More stuff</h3>
+
+<p>The AWS client code now lives in its own library: <a href="https://github.com/zalora/aws-ec2">zalora/aws-ec2</a>.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/zalora">zalora</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-54327624-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
