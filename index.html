@@ -28,65 +28,102 @@
         </ul>
       </header>
       <section>
-        <p>Upcast is a declarative cloud infrastructure orchestration tool that leverages <a href="http://nixos.org/nix/">Nix</a>.
-Its nix codebase (and, by extension, its interface) was started off by copying files from <a href="https://github.com/nixos/nixops">nixops</a>.</p>
+        <p>Upcast is a tool that provisions cloud infrastructure based on a declarative spec (<em>infra spec</em>)
+in <a href="http://nixos.org/nix/">Nix</a> expression language.
+Upcast also includes a <a href="https://github.com/zalora/upcast/tree/master/nix/nixos">opinionated base NixOS configuration</a>
+suitable for cloud deployments.
+Upcast is inspired by NixOps.</p>
 
 <p><a href="https://travis-ci.org/zalora/upcast"><img src="https://travis-ci.org/zalora/upcast.svg?branch=master" alt="Build Status"></a></p>
 
 <h3>
-<a name="quick-start" class="anchor" href="#quick-start"><span class="octicon octicon-link"></span></a>Quick start</h3>
+<a id="upcast-tour" class="anchor" href="#upcast-tour" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upcast tour</h3>
 
-<div class="highlight highlight-console"><pre><span class="go">upcast - infrastructure orchestratrion</span>
+<div class="highlight highlight-console"><pre>% <span class="pl-s2">cabal install</span></pre></div>
 
-<span class="go">Usage: upcast COMMAND</span>
+<p>Contents of <code>infra.nix</code>:</p>
 
-<span class="go">Available commands:</span>
-<span class="go">  run                      evaluate resources, run builds and deploy</span>
-<span class="go">  build                    perform a build of all machine closures</span>
-<span class="go">  ssh-config               dump ssh config for deployment (evaluates resources)</span>
-<span class="go">  resource-info            dump resource information in json format</span>
-<span class="go">  resource-debug           evaluate resources in debugging mode</span>
-</pre></div>
+<div class="highlight highlight-nix"><pre>{ <span class="pl-vpf">lib</span> <span class="pl-k">?</span> <span class="pl-s3">import</span> <span class="pl-s1">&lt;upcast/lib&gt;</span> }:
+<span class="pl-k">let</span>
+  <span class="pl-e">ec2-args</span> <span class="pl-k">=</span> {
+    <span class="pl-e">accessKeyId</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>default<span class="pl-pds">"</span></span>;
+    <span class="pl-e">region</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>eu-west-1<span class="pl-pds">"</span></span>;
+    <span class="pl-e">zone</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>eu-west-1a<span class="pl-pds">"</span></span>;
+    <span class="pl-e">securityGroups</span> <span class="pl-k">=</span> [ <span class="pl-s1"><span class="pl-pds">"</span>sg-bbbbbbbb<span class="pl-pds">"</span></span> ];
+    <span class="pl-e">subnet</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>subnet-ffffffff<span class="pl-pds">"</span></span>;
+    <span class="pl-e">keyPair</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>my-keypair<span class="pl-pds">"</span></span>;
+  };
+  <span class="pl-e">instance</span> <span class="pl-k">=</span> <span class="pl-vpf">instanceType</span>: <span class="pl-v">ec2-args</span> <span class="pl-k">//</span> { <span class="pl-k">inherit</span> <span class="pl-e">instanceType</span>; };
+<span class="pl-k">in</span>
+{
+  <span class="pl-e">infra</span> <span class="pl-k">=</span> {
+    <span class="pl-e">ec2-instance</span> <span class="pl-k">=</span> {
+      <span class="pl-e">node1</span> <span class="pl-k">=</span> <span class="pl-v">instance</span> <span class="pl-s1"><span class="pl-pds">"</span>m3.large<span class="pl-pds">"</span></span>;
+      <span class="pl-e">node2</span> <span class="pl-k">=</span> <span class="pl-v">instance</span> <span class="pl-s1"><span class="pl-pds">"</span>m3.large<span class="pl-pds">"</span></span>;
+    };
+  };
 
-<div class="highlight highlight-console"><pre><span class="gp">$</span> awk <span class="s1">'NR==1{print "default", $1, $2}'</span> ~/.ec2-keys &gt; ~/.aws-keys <span class="c"># assuming you used nixops</span>
-<span class="gp">$</span> cabal install
-<span class="gp">$</span> upcast run my-network.nix -- -j4
-</pre></div>
+  <span class="pl-c"># you need &lt;nixpkgs&gt; in your $NIX_PATH to build this</span>
+  <span class="pl-c"># &lt;upcast/nixos&gt; is a drop-in replacement for &lt;nixpkgs/nixos&gt;</span>
+  <span class="pl-e">some-image</span> <span class="pl-k">=</span> (<span class="pl-s3">import</span> <span class="pl-s1">&lt;upcast/nixos&gt;</span> {
+    <span class="pl-e">configuration</span> <span class="pl-k">=</span> { <span class="pl-vpf">config</span><span class="pl-k">,</span> <span class="pl-vpf">pkgs</span><span class="pl-k">,</span> <span class="pl-vpf">lib</span><span class="pl-k">,</span> <span class="pl-k">... </span>}: {
+      <span class="pl-e">config</span>.<span class="pl-e">services</span>.<span class="pl-e">nginx</span>.<span class="pl-e">enable</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>;
+    };
+  })<span class="pl-k">.</span><span class="pl-v">system</span>;
+}</pre></div>
 
-<p>See example deployments in <code>examples/</code>.</p>
+<p><code>upcast infra-tree</code> dumps the full json configuration of what's going to be provisioned,
+note that upcast only evaluates the top level <code>infra</code> attribute.</p>
+
+<p><code>upcast infra</code> actually provisions all resources and outputs the <code>ssh_config(5)</code> for all compute
+nodes in the spec.</p>
+
+<div class="highlight highlight-console"><pre>% <span class="pl-s2">upcast infra-tree infra.nix <span class="pl-k">|</span> jq -r <span class="pl-s3">.</span></span>
+
+% <span class="pl-s2">upcast infra infra.nix <span class="pl-k">&gt;</span> ssh_config</span></pre></div>
+
+<p><code>upcast build-remote</code> and <code>upcast install</code> are wrappers over Nix/NixOS toolchain
+that hugely <a href="#achieving-productivity">boost productivity</a>.
+Here they are used to build NixOS closures and install them on <code>node1</code>.</p>
+
+<div class="highlight highlight-console"><pre>% <span class="pl-s2">upcast build-remote -t hydra -A some-image infra.nix \</span>
+<span class="pl-mo">    | xargs -tn1 upcast install -c ssh_config -f hydra -t node1 </span></pre></div>
+
+<p>Same example without <code>build-remote</code>:</p>
+
+<div class="highlight highlight-console"><pre>% <span class="pl-s2">nix-build -I upcast=<span class="pl-s1"><span class="pl-pds">$(</span>upcast nix-path<span class="pl-pds">)</span></span> -A some-image -A some-image infra.nix</span>
+% <span class="pl-s2">upcast install -c ssh_config -t node1 <span class="pl-s1"><span class="pl-pds">$(</span>readlink ./result<span class="pl-pds">)</span></span></span></pre></div>
+
+<p>For more examples see <a href="https://github.com/proger/nix-adhoc">nix-adhoc</a> and upcast <a href="https://github.com/zalora/upcast/tree/master/test">tests</a>.</p>
 
 <h3>
-<a name="goals" class="anchor" href="#goals"><span class="octicon octicon-link"></span></a>Goals</h3>
+<a id="goals" class="anchor" href="#goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Goals</h3>
 
 <ul>
 <li>simplicity, extensibility;</li>
 <li>shared state stored as nix expressions next to machines expressions;</li>
 <li>first-class AWS support (including AWS features nixops doesn't have);</li>
-<li>minimum dependency of network latency of the client (see section "Network performance");</li>
-<li>support for running day-to-day operations on deployed resources, services and machines.</li>
-</ul><h3>
-<a name="notable-differences-from-nixops" class="anchor" href="#notable-differences-from-nixops"><span class="octicon octicon-link"></span></a>Notable differences from NixOps</h3>
-
-<h4>
-<a name="expression-files" class="anchor" href="#expression-files"><span class="octicon octicon-link"></span></a>Expression files</h4>
-
-<ul>
-<li>You can no longer specify the machine environment using <code>deployment.targetEnv</code>, now you need to explicitly include the resource module instead.
-Currently available modules are: <code>&lt;upcast/env-ec2.nix&gt;</code>.</li>
-</ul><h4>
-<a name="operation-modes" class="anchor" href="#operation-modes"><span class="octicon octicon-link"></span></a>Operation modes</h4>
-
-<ul>
-<li>The only supported command is <code>run</code> (so far). No <code>create</code>, <code>modify</code>, <code>clone</code>, <code>set-args</code>, <code>send-keys</code>.</li>
-<li>NixOps SQLite state files are abandoned, separate text files (<a href="https://github.com/zalora/upcast/blob/master/src/Upcast/TermSubstitution.hs">json dict for state</a> and a private key file) are used instead;</li>
-<li>Physical specs are removed
-
-<ul>
-<li>Identical machines get identical machine closures, they are no longer parametric by things like hostnames (these are configured at runtime).</li>
+<li>pleasant user experience and network performance (see below);</li>
+<li>support for running day-to-day operations on infrastructure, services and machines.</li>
 </ul>
-</li>
-</ul><h4>
-<a name="resources" class="anchor" href="#resources"><span class="octicon octicon-link"></span></a>Resources</h4>
+
+<h3>
+<a id="notable-features" class="anchor" href="#notable-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notable features</h3>
+
+<ul>
+<li>the infrastructure spec is evaluated separately from NixOS system closures
+(installation must also be handled separately and is outside of <code>upcast</code> cli tool);</li>
+<li>state is kept in a text file that you can commit into your VCS.</li>
+<li>Upcast includes opinionated default NixOS configuration for
+<a href="https://github.com/zalora/upcast/blob/master/nix/nixos/env-ec2.nix">EC2 instance-store instances</a>
+(see also the <a href="https://github.com/zalora/upcast/blob/master/nix/aws/ec2-amis.nix">list of AMIs</a>)
+and <a href="https://github.com/zalora/upcast/blob/master/nix/nixos/env-virtualbox.nix">VirtualBox</a>.</li>
+</ul>
+
+<h3>
+<a id="infrastructure-services" class="anchor" href="#infrastructure-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Infrastructure services</h3>
+
+<p>(this is what used to be called <code>resources</code> in NixOps)</p>
 
 <ul>
 <li>New: EC2-VPC support, ELB support;</li>
@@ -94,71 +131,91 @@ Currently available modules are: <code>&lt;upcast/env-ec2.nix&gt;</code>.</li>
 <li>Different in EC2: CreateKeyPair (autogenerated private keys by amazon) is not supported, ImportKeyPair is used instead;</li>
 <li>Not supported: sqs, s3, elastic ips, ssh tunnels, adhoc nixos deployments,
              deployments to expressions that span multiple AWS regions;</li>
-<li>Most likely will not be supported: virtualbox, hetzner, auto-luks, auto-raid0, <code>/run/keys</code> support, static route53 support (like nixops);</li>
-</ul><h3>
-<a name="motivation" class="anchor" href="#motivation"><span class="octicon octicon-link"></span></a>Motivation</h3>
+<li>Most likely will not be supported: hetzner, auto-luks, auto-raid0, <code>/run/keys</code> support, static route53 support (like nixops);</li>
+</ul>
+
+<h3>
+<a id="motivation" class="anchor" href="#motivation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation</h3>
 
 <p><img src="http://i.imgur.com/HY2Gtk5.png" alt="motivation"></p>
 
 <h3>
-<a name="network-performance" class="anchor" href="#network-performance"><span class="octicon octicon-link"></span></a>Network performance</h3>
+<a id="achieving-productivity" class="anchor" href="#achieving-productivity" aria-hidden="true"><span class="octicon octicon-link"></span></a>Achieving productivity</h3>
 
 <blockquote>
-<p>tl;dr: do all of these steps if you're using a Mac and/or like visting Starbucks</p>
+<p>tl;dr: do all of these steps if you're using a Mac and/or like visiting Starbucks</p>
 </blockquote>
 
 <h4>
-<a name="configuring-remote-builds" class="anchor" href="#configuring-remote-builds"><span class="octicon octicon-link"></span></a>Configuring remote builds</h4>
+<a id="remote-builds" class="anchor" href="#remote-builds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Remote builds</h4>
 
-<p>Add the following to your shell profile (this is a must if you are using Darwin, otherwise package builds will fail):</p>
+<p>Unlike <a href="http://nixos.org/nix/manual/#chap-distributed-builds">Nix distributed builds</a>
+packages are not copied back and forth between the instance and your local machine.</p>
 
-<div class="highlight highlight-bash"><pre><span class="nb">export </span><span class="nv">NIX_BUILD_HOOK</span><span class="o">=</span><span class="s2">"$HOME/.nix-profile/libexec/nix/build-remote.pl"</span>
-<span class="nb">export </span><span class="nv">NIX_REMOTE_SYSTEMS</span><span class="o">=</span><span class="s2">"$HOME/remote-systems.conf"</span>
-<span class="nb">export </span><span class="nv">NIX_CURRENT_LOAD</span><span class="o">=</span><span class="s2">"/tmp/remote-load"</span>
-</pre></div>
+<div class="highlight highlight-bash"><pre>upcast build-remote -t hydra.com -A something default.nix</pre></div>
 
-<p><code>remote-systems.conf</code> must follow a special format described
-in <a href="https://nixos.org/wiki/Distributed_build">this Nix wiki page</a>
-and <a href="http://nixos.org/nix/manual/#chap-distributed-builds">chapter 6 of Nix manual</a>.
-<code>NIX_CURRENT_LOAD</code> should point to a directory.</p>
+<p>If you want to update your existing systems as part of your CI workflow, you can do something like this:</p>
+
+<div class="highlight highlight-bash"><pre>upcast infra examples/vpc-nix-instance.nix <span class="pl-k">&gt;</span> ssh_config
+
+awk <span class="pl-s1"><span class="pl-pds">'</span>/^Host/{print $2}<span class="pl-pds">'</span></span> ssh_config <span class="pl-k">|</span> \
+    xargs -I% -P4 -n1 -t ssh -F ssh_config % nix-collect-garbage -d
+
+awk <span class="pl-s1"><span class="pl-pds">'</span>/^Host/{print $2}<span class="pl-pds">'</span></span> ssh_config <span class="pl-k">|</span> \
+    xargs -I% -P4 -n1 -t upcast install -t % <span class="pl-s1"><span class="pl-pds">$(</span>upcast build-remote -A some-system blah.nix<span class="pl-pds">)</span></span></pre></div>
 
 <h4>
-<a name="making-instances-download-packages-from-a-different-host-over-ssh-a-closure-cache" class="anchor" href="#making-instances-download-packages-from-a-different-host-over-ssh-a-closure-cache"><span class="octicon octicon-link"></span></a>Making instances download packages from a different host over ssh (a closure cache)</h4>
+<a id="nix-profile-uploads" class="anchor" href="#nix-profile-uploads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nix-profile uploads</h4>
 
-<p>This is useful if one of your remote systems is accessible over ssh and has
-better latency to the instance than the machine you run Upcast on.</p>
+<p>Read more about Nix profiles <a href="http://nixos.org/nix/manual/#sec-profiles">here</a>.</p>
+
+<p>Install a system closure to any NixOS system (i.e. update <code>system</code> profile) and switch to it:</p>
+
+<div class="highlight highlight-bash"><pre><span class="pl-c"># assuming the closure was built earlier</span>
+upcast install -t ec2-55-99-44-111.eu-central-1.compute.amazonaws.com /nix/store/72q9sd9an61h0h1pa4ydz7qa1cdpf0mj-nixos-14.10pre-git</pre></div>
+
+<p>Install a <a href="https://github.com/NixOS/nixpkgs/blob/d232390d5dc3dcf912e76ea160aea62f049918e1/pkgs/build-support/buildenv/default.nix">buildEnv</a> package into <code>per-user/my-scripts</code> profile:</p>
+
+<div class="highlight highlight-bash"><pre>upcast build-remote -t hydra -A my-env default.nix <span class="pl-k">|</span> xargs -n1t upcast install -f hydra -p /nix/var/nix/profiles/per-user/my-scripts -t target-instance</pre></div>
+
+<h4>
+<a id="making-instances-download-packages-from-a-different-host-over-ssh-a-closure-cache" class="anchor" href="#making-instances-download-packages-from-a-different-host-over-ssh-a-closure-cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making instances download packages from a different host over ssh (a closure cache)</h4>
+
+<p>If you still want to (or have to) build most of the packages locally,
+this is useful if one of your cache systems is accessible over ssh
+and has better latency to the instance than the machine you run Upcast on.  </p>
 
 <p>The key to that host must be already available in your ssh-agent.
-Inherently, you also should propagate ssh keys of your instances to that ssh-agent in this case.</p>
+Inherently, you should also propagate ssh keys of your instances to
+that ssh-agent in this case.</p>
 
-<div class="highlight highlight-bash"><pre><span class="nb">export </span><span class="nv">UPCAST_SSH_AUTH_SOCK</span><span class="o">=</span><span class="nv">$SSH_AUTH_SOCK</span>
-<span class="nb">export </span><span class="nv">UPCAST_SSH_CLOSURE_CACHE</span><span class="o">=</span>nix-ssh@example.com
-</pre></div>
+<div class="highlight highlight-bash"><pre><span class="pl-s">export</span> UPCAST_SSH_CLOSURE_CACHE=nix-ssh@hydra.com</pre></div>
 
 <h4>
-<a name="ssh-shared-connections" class="anchor" href="#ssh-shared-connections"><span class="octicon octicon-link"></span></a>SSH shared connections</h4>
+<a id="ssh-shared-connections" class="anchor" href="#ssh-shared-connections" aria-hidden="true"><span class="octicon octicon-link"></span></a>SSH shared connections</h4>
 
 <p><code>ControlMaster</code> helps speed up subsequent ssh sessions by reusing a single TCP connection. See <a href="http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-current/man5/ssh_config.5?query=ssh_config">ssh_config(5)</a>.</p>
 
-<div class="highlight highlight-console"><pre><span class="gp">%</span> cat ~/.ssh/config
-<span class="go">Host *</span>
-<span class="go">    ControlPath ~/.ssh/master-%r@%h:%p</span>
-<span class="go">    ControlMaster auto</span>
-<span class="go">    ControlPersist yes</span>
-</pre></div>
+<div class="highlight highlight-console"><pre>% <span class="pl-s2">cat <span class="pl-k">~</span>/.ssh/config</span>
+<span class="pl-mo">Host *</span>
+<span class="pl-mo">    ControlPath ~/.ssh/master-%r@%h:%p</span>
+<span class="pl-mo">    ControlMaster auto</span>
+<span class="pl-mo">    ControlPersist yes</span></pre></div>
 
 <h3>
-<a name="known-issues" class="anchor" href="#known-issues"><span class="octicon octicon-link"></span></a>Known issues</h3>
+<a id="known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known issues</h3>
 
 <ul>
 <li>state files are not garbage collected, have to be often cleaned up manually;</li>
-<li>altering of most resources is not supported properly (you need to remove using aws cli, cleanup the state file and try again);</li>
+<li>altering infra state is not supported properly (you need to remove using aws cli, cleanup the state file and try again);</li>
 <li>word "aterm" is naming a completely different thing;</li>
-</ul><p>Note: the app is currently in HEAVY development (and is already being used to power production cloud instances)
+</ul>
+
+<p>Note: the app is currently in HEAVY development (and is already being used to power production cloud instances)
 so interfaces may break without notice.</p>
 
 <h3>
-<a name="more-stuff" class="anchor" href="#more-stuff"><span class="octicon octicon-link"></span></a>More stuff</h3>
+<a id="more-stuff" class="anchor" href="#more-stuff" aria-hidden="true"><span class="octicon octicon-link"></span></a>More stuff</h3>
 
 <p>The AWS client code now lives in its own library: <a href="https://github.com/zalora/aws-ec2">zalora/aws-ec2</a>.</p>
       </section>
