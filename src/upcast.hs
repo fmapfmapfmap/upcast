@@ -207,6 +207,7 @@ main = do
                      <> metavar "FROM"
                      <> help "pull store paths from host"))
       <*> argument str (metavar "STORE_PATH")
+      <*> switch (long "ignore-failing-services" <> short 'i' <> help "Activate deployments even when units fail.")
 
     buildRemoteCli = BuildRemoteCli
       <$> strOption (long "target"

@@ -56,6 +56,7 @@ data InstallCli = InstallCli
                 , ic_sshConfig :: Maybe FilePath
                 , ic_pullFrom :: Maybe String
                 , ic_storepath :: FilePath
+                , ic_ignoreFailingServices :: Bool
                 } deriving (Show)
 
 -- | CLI arguments to 'buildRemote'.

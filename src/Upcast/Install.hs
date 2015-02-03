@@ -41,10 +41,10 @@ install fgrun args@InstallCli{..} = do
       i_paths = []
       i_profile = maybe nixSystemProfile id ic_profile
   let ?sshConfig = ic_sshConfig
-  go (fgCommands fgrun) (toDelivery ic_pullFrom) Install{..}
+  go (fgCommands fgrun) (toDelivery ic_pullFrom) ic_ignoreFailingServices Install{..}
 
-go :: (?sshConfig :: Maybe FilePath) => FgCommands -> DeliveryMode -> Install -> IO ()
-go FgCommands{..} dm install@Install{i_paths} = do
+go :: (?sshConfig :: Maybe FilePath) => FgCommands -> DeliveryMode -> Bool -> Install -> IO ()
+go FgCommands{..} dm ignoreFailingServices install@Install{i_paths} = do
   maybeCache <- getEnv "UPCAST_SSH_STORE_CACHE"
   case maybeCache of
       Just cache -> do
@@ -58,5 +58,4 @@ go FgCommands{..} dm install@Install{i_paths} = do
 
   fgssh $ nixSetProfileI install
   when (i_profile install == nixSystemProfile) $ do
-    fgssh . nixSwitchToConfiguration $ install
-
+    fgssh . nixSwitchToConfiguration ignoreFailingServices $ install

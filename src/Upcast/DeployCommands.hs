@@ -99,9 +99,11 @@ nixSetProfile i_profile i_storepath =
 nixSystemProfile :: FilePath
 nixSystemProfile = "/nix/var/nix/profiles/system"
 
-nixSwitchToConfiguration :: Install -> Command Remote
-nixSwitchToConfiguration Install{i_remote = r@(Remote _ host)} =
-    Cmd r [n|env NIXOS_NO_SYNC=1 #{nixSystemProfile}/bin/switch-to-configuration switch|] "switch"
+nixSwitchToConfiguration :: Bool -> Install -> Command Remote
+nixSwitchToConfiguration ignoreFailingServices Install{i_remote = r@(Remote _ host)} =
+    Cmd r (ignorantWrapper [n|env NIXOS_NO_SYNC=1 #{nixSystemProfile}/bin/switch-to-configuration switch|]) "switch"
+  where
+    ignorantWrapper e = if ignoreFailingServices then [n|#{e}; [ $? == 4 ] && exit 0|] else e
 
 nixClosure :: FilePath -> Command Local
 nixClosure path =
